@@ -432,6 +432,10 @@ RetryLoop:
 		return err
 	}
 
+	if p.config.EnableDCMigration() {
+		return nil
+	}
+
 	p.metricsClient.IncCounter(metrics.HistoryRereplicationByActivityReplicationScope, metrics.CadenceClientRequests)
 	stopwatch := p.metricsClient.StartTimer(metrics.HistoryRereplicationByActivityReplicationScope, metrics.CadenceClientLatency)
 	defer stopwatch.Stop()
@@ -465,7 +469,7 @@ Loop:
 			break Loop
 		}
 	}
-	if !processTask {
+	if !processTask && !p.config.EnableDCMigration() {
 		logger.Warn("Dropping non-targeted history task.")
 		return nil
 	}
@@ -538,6 +542,11 @@ RetryLoop:
 		logger.WithField(logging.TagErr, resendErr).Error("error resend history")
 	}
 	// should return the replication error, not the resending error
+
+	// TODO uncomment this test once DC migration is done
+	if !processTask {
+		return nil
+	}
 	return err
 }
 
